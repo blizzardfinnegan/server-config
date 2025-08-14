@@ -1,0 +1,17 @@
+services:
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    ports:
+      # HTTP port is used for verifying ownership of domain name, for HTTPS certificate generation
+      - 80:80
+      # HTTPS port for reverse proxying
+      - 443:443
+      # Accept UDP traffic to HTTPS port
+      - 443:443/udp
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      - ./caddy/security.conf:/etc/caddy/security.conf
+      - ./caddy/data:/data
+      - ./caddy/config:/config
+    restart: unless-stopped

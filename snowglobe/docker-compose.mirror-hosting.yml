@@ -1,0 +1,22 @@
+services:
+  mirror-serve:
+    image: ghcr.io/kiwix/kiwix-serve:latest
+    container_name: mirror-serve
+    volumes:
+      - ./mirror-serve/data:/data
+    command:
+      - "*.zim"
+    # List of archived databases:
+    # - most, if not all stackexchanges (in english)
+    # - AlpineLinux docs
+    # - ArchWiki (ArchLinux docs; the most comprehensive linux docs to my knowledge)
+    # - AskUbuntu
+    # - CrashCourse
+    # - Gentoo Wiki
+    # - Project Gutenberg 
+    # - iFixIt Docs
+    # - Md Wiki (medical docs)
+    # - Wikipedia
+    # - Wikispecies
+    # - WikiSource
+    restart: unless-stopped

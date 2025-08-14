@@ -1,0 +1,7 @@
+service:
+  cookbook:
+    container_name: cookbook
+    build:
+      context: https://git.blizzard.systems/Menagerie/Menagerie_Cookbook.git#${COOKBOOK_VERSION}
+      dockerfile: ./Dockerfile.web-serve
+    restart: unless-stopped

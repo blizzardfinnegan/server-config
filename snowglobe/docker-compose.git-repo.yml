@@ -1,0 +1,72 @@
+services:
+  forgejo:
+    container_name: forgejo
+    build: https://codeberg.org/forgejo/forgejo#${FORGEJO_VERSION}
+    environment:
+      - USER_UID=${PGID}
+      - USER_GID=${PUID}
+      - GNUPGHOME=${FORGEJO_GPG_FOLDER}
+    ports:
+      # Git often uses SSH for secure repository syncing, however, 
+      # port 22 (SSH) is one of the most probed port on the open internet. 
+      # Industry reporting from Rapid7, CISA, Palo Alto Unit 42, and Shodan
+      # report (according to FullArmor.com) that 25% of all observed attack
+      # attempts are sent to port 22. Additionally, according to Shodan scanning,
+      # there are over 21 million systems on the open internet that expose 
+      # port 22. This means that it is very likely to be attacked, with dangerous
+      # consequences if exposed improperly or an exploit in the SSH protocol or
+      # library is found. Simply shifting away from port 22 onto an unallocated port
+      # reduces the brute-force attack surface significantly, although it does not
+      # reduce the attack surface of targeted attacks. This is deemed to be an acceptable risk.
+      - 26:22
+    volumes:
+      - ./git-repo/.ssh:/data/git/.ssh
+      - ./git-repo/gitea:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+
+  woodpecker-server:
+    image: woodpeckerci/woodpecker-server:latest
+    container_name: ci_server
+    # Expose ports from the container to the physical network, using ports on the server network interface
+    ports:
+      # This port is used for communications between the CI server and external runners
+      # Particularly useful for native non-x86 architecture CI builds
+      - ${CI_EXTERNAL_PORT}:9000
+    volumes:
+      - ./ci-server:/var/lib/woodpecker/
+    environment:
+      # For more information on these values, see: 
+      # https://woodpecker-ci.org/docs/administration/configuration/server
+      - WOODPECKER_OPEN=true
+      - WOODPECKER_ADMIN=${CI_ADMIN_USERNAMES}
+      - WOODPECKER_HOST=${CI_URL}
+      - WOODPECKER_FORGEO=true
+      - WOODPECKER_FORGEJO_URL=${FORGEJO_URL}
+      - WOODPECKER_FORGEJO_CLIENT=${FORGEJO_OAUTH_CLIENT_ID}
+      - WOODPECKER_FORGEJO_SECRET=${FORGEJO_OAUTH_CLIENT_SECRET}
+      - WOODPECKER_AGENT_SECRET=${CI_RUNNER_SECRET}
+    restart: unless-stopped
+    depends_on: 
+      - forgejo
+
+  woodpecker-agent:
+    image: woodpeckerci/woodpecker-agent:latest
+    container_name: ci_local_runner
+    command: agent
+    volumes:
+      # Bind mount the Docker socket to the runner;
+      # This allows the runner to run Docker CI jobs
+      - /var/run/docker.sock:/var/run/docker.sock
+    # This is required for permissions to the Docker socket
+    privileged: true
+    environment:
+      # For more information on these values, see: 
+      # https://woodpecker-ci.org/docs/administration/configuration/agent
+      - WOODPECKER_SERVER=ci_server:9000
+      - WOODPECKER_AGENT_SECRET=${CI_RUNNER_SECRET}
+      - WOODPECKER_MAX_WORKFLOWS=${CI_RUNNER_WORKFLOWS}
+    restart: unless-stopped
+    depends_on:
+      - woodpecker-server

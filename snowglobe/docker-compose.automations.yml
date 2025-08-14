@@ -1,0 +1,112 @@
+services:
+  transmission-openvpn:
+    image: yacht7/openvpn-client
+    container_name: mullvad
+    # allows all capabilities; may override `cap_add`?
+    privileged: true
+    # Allows container to modify and manage network interfaces; 
+    # necessary to generate a new VPN tunnel
+    cap_add:
+      - NET_ADMIN
+    environment:
+      # Without the VPN being completely up and running,
+      # disable all connection to the internet
+      - KILL_SWITCH=on
+      # What docker network subnet is considered the local network
+      - SUBNETS=${INTERNAL_SUBNET}
+    # Bind network tunnel Linux device (VPN "device") to this container
+    devices:
+      - /dev/net/tun
+    volumes:
+      # Bindmount location of Mullvad configuration
+      # For information on how to get this folder, see Mullvad's
+      # public-facing OpenVPN documentation:
+      # https://mullvad.net/en/help/linux-openvpn-installation
+      # Follow Ubuntu/Debian - using the terminal section, points 1-3 to get 
+      # a zip file, then transfer to server, and unzip in proper location
+      - ./mullvad_config_linux_gb_all:/data/vpn
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+    restart: unless-stopped
+
+  qbittorrent:
+    image: linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    environment:
+      # Set UID and GID to be a real, non-root user.
+      # This mitigates some risk from container-escape attacks, and allows 
+      # for per-container permissions management. For readability and simplicity, 
+      # all containers are configured here to use the same UID and GID; this 
+      # can be changed by using unique environment variable names for each container.
+      # Values are set in .env
+      - PUID=${PUID}
+      - PGID=${PGID}
+    volumes:
+      - ./qbt/config:/config
+      - ${QBT_TEMP_FOLDER}:/downloads
+      - ${SONARR_IMPORT_FOLDER}:/tvdownloads
+      - ${RADARR_IMPORT_FOLDER}:/filmdownloads
+    # Force all traffic from this container through the Mullvad container, if available
+    network_mode: service:transmission-openvpn
+    # Wait until Mullvad container is alive and well before starting this container
+    depends_on:
+      - transmission-openvpn
+    restart: unless-stopped
+
+  sonarr: #TV
+    image: linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./sonarr/config:/config
+      - ${TV_DIR}:/tv
+      - ${SONARR_IMPORT_FOLDER}:/downloads
+    restart: unless-stopped
+    # This service makes regular requests to the QBittorrent container, and 
+    # warns when said container is not available. May as well wait until it 
+    # exists before starting this container.
+    depends_on:
+      - qbittorrent
+
+  radarr: #Movies
+    image: linuxserver/radarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./radarr/config:/config
+      - ${MOVIE_DIR}:/movies
+      - ${RADARR_IMPORT_FOLDER}:/downloads
+    restart: unless-stopped
+    depends_on:
+      - qbittorrent
+
+  prowlarr: #Indexer management for Sonarr and Radarr
+    image: linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./prowlarr/config:/config
+    restart: unless-stopped
+
+  bazarr: #Subtitles
+    image: linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+    volumes:
+      - ./bazarr/config:/config
+      - ${MOVIE_DIR}:/movies
+      - ${TV_DIR}:/tv
+    restart: unless-stopped

@@ -1,0 +1,27 @@
+include:
+  - docker-compose.audiobook.yml
+  - docker-compose.automations.yml
+  - docker-compose.caddy.yml
+  - docker-compose.cookbook.yml
+  - docker-compose.factorio.yml
+  - docker-compose.git-repo.yml
+  - docker-compose.it-tools.yml
+  - docker-compose.jellyfin.yml
+  - docker-compose.landing-page.yml
+  - docker-compose.minecraft.yml
+  - docker-compose.mirror-hosting.yml
+  - docker-compose.monitoring.yml
+  - docker-compose.rss-feed.yml
+
+# Declare a custom network, named internal, that all other containers will use to talk to each other.
+# This keeps all inter-container communication off the physical network.
+networks:
+  default:
+    name: internal
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: ${INTERNAL_SUBNET}
+          ip_range: ${INTERNAL_SUBNET}
+          gateway: ${INTERNAL_GATEWAY}

@@ -1,0 +1,5 @@
+services:
+  it-tools:
+    container_name: ittools
+    build: https://git.blizzard.systems/github-mirrors/it-tools#${IT_TOOLS_VERSION}
+    restart: unless-stopped

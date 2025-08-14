@@ -1,0 +1,11 @@
+services:
+  audiobookshelf:
+    container_name: audiobookshelf
+    build: https://git.blizzard.systems/github-mirrors//audiobookshelf.git#${AUDIOBOOKSHELF_VERSION}
+    volumes:
+      - ${AUDIOBOOKS_DIR}:/audiobooks
+      - ${PODCASTS_DIR}:/podcasts
+      - ${EBOOKS_DIR}:/ebooks
+      - ./audiobookshelf/config:/config
+      - ./audiobookshelf/metadata:/metadata
+    restart: unless-stopped

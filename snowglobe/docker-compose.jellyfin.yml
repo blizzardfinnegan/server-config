@@ -1,0 +1,23 @@
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:${JELLYFIN_VERSION}
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+    group_add:
+      # To remove the need for a rootful docker container, add the Jellyfin container to the 
+      # `video`, `input`, and `render` groups. Values below should be considered examples.
+      # For more information, see:
+      # https://jellyfin.org/docs/general/post-install/transcoding/hardware-acceleration/intel#configure-with-linux-virtualization
+      - 102
+      - 105
+    volumes:
+      - ./jellyfin/config:/config
+      - ./jellyfin/cache:/cache
+      - ${MOVIES_DIR}:/movies
+      - ${TV_DIR}:/tv
+      - ${TV_GUNDAM_DIR}:/tv-Gundam
+    # Explicitly pass GPU to container
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
+    restart: unless-stopped

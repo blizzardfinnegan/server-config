@@ -1,0 +1,30 @@
+services:
+  miniflux:
+    image: miniflux/miniflux:latest
+    container_name: miniflux
+    environment:
+      # For more information, see: 
+      # https://miniflux.app/docs/docker.html#docker-compose
+      - DATABASE_URL=postgres://${MINIFLUX_DB_USER}:${MINIFLUX_DB_PASS}@minifluxdb/miniflux?sslmode=disable
+      - RUN_MIGRATIONS=1
+      - CREATE_ADMIN=0
+      - BASE_URL=${MINIFLUX_URL}
+    restart: always
+    depends_on:
+      minifluxdb:
+        condition: service_healthy
+
+  minifluxdb:
+    container_name: minifluxdb
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=${MINIFLUX_DB_USER}
+      - POSTGRESS_PASSWORD=${MINIFLUX_DB_PASS}
+      - POSTGRES_DB=miniflux
+    volumes:
+      - ./rss-feed/db:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "miniflux"]
+      interval: 10s
+      start_period: 30s

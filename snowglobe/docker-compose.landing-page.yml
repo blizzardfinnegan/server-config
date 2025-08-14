@@ -1,0 +1,9 @@
+services:
+  flame:
+    container_name: flame
+    image: pawelmalak/flame
+    volumes:
+      - ./landing-page/data:/app/data
+    environment:
+      - PASSWORD=${LANDING_PAGE_PASS}
+    restart: unless-stopped

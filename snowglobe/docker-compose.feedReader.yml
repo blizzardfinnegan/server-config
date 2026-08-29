@@ -1,0 +1,28 @@
+services:
+  miniflux:
+    image: miniflux/miniflux:${MINIFLUX_VERSION}
+    container_name: miniflux
+    ports:
+      - 10101:8080
+    depends_on:
+      minifluxdb:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://${MINIFLUX_DB_USER}:${MINIFLUX_DB_PASS}@minifluxdb/${MINIFLUX_DB_NAME}?sslmode=disable
+    env_file: .envs/feedReader/miniflux.env
+    restart: unless-stopped
+
+  minifluxdb:
+    container_name: minifluxdb
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=${MINIFLUX_DB_USER}
+      - POSTGRES_PASSWORD=${MINIFLUX_DB_PASS}
+      - POSTGRES_DB=${MINIFLUX_DB_NAME}
+    volumes:
+      - ./feedReader/db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "miniflux"]
+      interval: 10s
+      start_period: 30s
+    restart: unless-stopped

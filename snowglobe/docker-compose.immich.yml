@@ -1,0 +1,49 @@
+services:
+  immich-server:
+    container_name: immichServer
+    image: immich-server:latest
+    build:
+      context: https://git.blizzard.systems/github-mirrors/immich.git#${IMMICH_VERSION}
+      dockerfile: server/Dockerfile
+    volumes:
+      - ./immich/photos:/data
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - DB_USERNAME=${IMMICH_DB_USER}
+      - DB_PASSWORD=${IMMICH_DB_PASS}
+      - DB_DATABASE_NAME=${IMMICH_DB_NAME}
+    env_file: .envs/immich/immich-server.env
+    depends_on:
+      - redis
+      - database
+    restart: unless-stopped
+    healthcheck:
+      disable: false
+
+  redis:
+    container_name: immich_redis
+    image: docker.io/valkey/valkey:8-bookworm
+    healthcheck:
+      test: redis-cli ping || exit 1
+    restart: unless-stopped
+
+  database:
+    container_name: immich_postgres
+    image: immich_postgres:latest
+    build:
+      context: https://git.blizzard.systems/github-mirrors/immich-base-images.git${IMMICH_BASE_IMAGE_TAG}:postgres
+      dockerfile: Dockerfile
+      args:
+        PG_MAJOR: ${IMMICH_POSTGRES_MAJOR_VERSION}
+        VECTORCHORD_TAG: ${IMMICH_VECTORCHORD_TAG}
+        PGVECTOR_TAG: ${IMMICH_PGVECTOR_TAG}
+        PGVECTORS_TAG: ${IMMICH_PGVECTORS_TAG}
+    environment:
+      - POSTGRES_PASSWORD=${IMMICH_DB_PASS}
+      - DB_USERNAME=${IMMICH_DB_USER}
+      - DB_DATABASE_NAME=${IMMICH_DB_NAME}
+      - POSTGRES_INITDB_ARGS='--data-checksums'
+    volumes:
+      - ./immich/postgres:/var/lib/postgresql/data
+    shm_size: 128mb
+    restart: unless-stopped

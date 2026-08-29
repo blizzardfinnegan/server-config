@@ -1,0 +1,12 @@
+services:
+  rsscord:
+    container_name: rsscord
+    build: https://git.blizzard.systems/menagerie/rsscord
+    env_file: .envs/rss.env
+    volumes:
+      # Persist XML storage
+      - rssfeeds:/code/feeds
+    restart: unless-stopped
+
+volumes:
+  rssfeeds:

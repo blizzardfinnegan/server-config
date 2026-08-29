@@ -2,10 +2,9 @@ services:
   forgejo:
     container_name: forgejo
     build: https://codeberg.org/forgejo/forgejo#${FORGEJO_VERSION}
-    environment:
-      - USER_UID=${PGID}
-      - USER_GID=${PUID}
-      - GNUPGHOME=${FORGEJO_GPG_FOLDER}
+    env_file:
+      - .envs/generic.env
+      - .envs/gitRepo/forgejo.env
     ports:
       # Git often uses SSH for secure repository syncing, however, 
       # port 22 (SSH) is one of the most probed port on the open internet. 
@@ -36,17 +35,9 @@ services:
       - ${CI_EXTERNAL_PORT}:9000
     volumes:
       - ./ci-server:/var/lib/woodpecker/
-    environment:
-      # For more information on these values, see: 
-      # https://woodpecker-ci.org/docs/administration/configuration/server
-      - WOODPECKER_OPEN=true
-      - WOODPECKER_ADMIN=${CI_ADMIN_USERNAMES}
-      - WOODPECKER_HOST=${CI_URL}
-      - WOODPECKER_FORGEO=true
-      - WOODPECKER_FORGEJO_URL=${FORGEJO_URL}
-      - WOODPECKER_FORGEJO_CLIENT=${FORGEJO_OAUTH_CLIENT_ID}
-      - WOODPECKER_FORGEJO_SECRET=${FORGEJO_OAUTH_CLIENT_SECRET}
-      - WOODPECKER_AGENT_SECRET=${CI_RUNNER_SECRET}
+    env_file: 
+      - .envs/gitRepo/woodpecker.env
+      - .envs/gitRepo/woodpecker-server.env
     restart: unless-stopped
     depends_on: 
       - forgejo
@@ -62,11 +53,10 @@ services:
     # This is required for permissions to the Docker socket
     privileged: true
     environment:
-      # For more information on these values, see: 
-      # https://woodpecker-ci.org/docs/administration/configuration/agent
       - WOODPECKER_SERVER=ci_server:9000
-      - WOODPECKER_AGENT_SECRET=${CI_RUNNER_SECRET}
-      - WOODPECKER_MAX_WORKFLOWS=${CI_RUNNER_WORKFLOWS}
     restart: unless-stopped
+    env_file: 
+      - .envs/gitRepo/woodpecker.env
+      - .envs/gitRepo/woodpecker-agent.env
     depends_on:
       - woodpecker-server

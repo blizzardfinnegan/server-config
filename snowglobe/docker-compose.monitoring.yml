@@ -16,7 +16,7 @@ services:
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc) ($$|/)'
 
   container-monitor:
-    image: gcr.io/cadvisor:cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:latest
     container_name: daemon-monitor
     restart: unless-stopped
     ports:

@@ -1,6 +1,6 @@
 services:
   caddy:
-    image: caddy:latest
+    image: caddy:${CADDY_IMAGE_TAG}
     container_name: caddy
     ports:
       # HTTP port is used for verifying ownership of domain name, for HTTPS certificate generation
@@ -14,4 +14,7 @@ services:
       - ./caddy/security.conf:/etc/caddy/security.conf
       - ./caddy/data:/data
       - ./caddy/config:/config
+      # Static file serving, for use with Discord RSS scraper/feed reader
+      # Defined in the RSS docker compose file
+      - rssfeeds:/srv
     restart: unless-stopped
